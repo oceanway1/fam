@@ -1,50 +1,83 @@
-const express = require('express')
+// ---- LOAD env variables from the .env file ---- //
+require ('dotenv').config();
 
-// use process.env variables to keep private variables,
-require('dotenv').config()
+// ---- WEB SERVER CONFIG ------------------------ //
+const port = process.env.PORT || 8000;
+const ENV = process.env.ENV || 'development';
+const express = require('express');
+const bodyParser = require('body-parser');
+const cookieParser = require('cookie-parser');
+const sass = require('node-sass-middleware');
+const morgan = require('morgan');
+const cookieSession = require('cookie-session');
+const cors = require('cors');
 
-// Express Middleware
-const helmet = require('helmet') // creates headers that protect from attacks (security)
-const bodyParser = require('body-parser') // turns response into usable format
-const cors = require('cors')  // allows/disallows cross-site communication
-const morgan = require('morgan') // logs requests
+// ---- INITIALIZING THE SERVER ----------------- //
+const server = express();
 
-
-// db Connection w/ localhost
-
+// ---- INITIALIZING THE DATABASE(POSTGRESQL) --- //
+// UNCOMMENT AFTER FILLING THE .env FILE WITH DATABASE CREDENTIALS
 
 const { Pool } = require('pg');
 const dbParams = require('./lib/db');
 const db = new Pool(dbParams);
 db.connect();
 
+server.use(cors());
+server.use(cookieParser());
+server.use(morgan('dev'));
+server.use(bodyParser.urlencoded({ extended: true }));
+server.use(bodyParser.json());
+server.use('/styles', sass({
+  src: __dirname + '/styles',
+  dest: __dirname + '/public/styles',
+  debug: true,
+  outputStyle: 'expanded'
+}));
+server.use(express.static('public'));
 
-// Controllers - aka, the db queries
-const main = require('./controllers/main')
+server.set('view engine', 'ejs');
 
-// App
-const app = express()
+// ---- SETUP THE DIFFERENT PATHS IN THE ROUTES HERE -------- // <-- DEFINES ALL URL ROUTES
+const sampleRoutes = require('./routes/sampleRoutes');
+const usersRoutes = require('./routes/usersRoutes');
+const famRoutes = require('./routes/famRoutes');
 
+// ---- SETUP THE DIFFERENT PATHS IN THE SERVICE HERE ------- // <-- CONTAINS ALL OTHER COMPLEX BUSINESS LOGIC
+const sampleServiceFactory = require('./service/sampleServices');
+const usersServiceFactory = require('./service/usersServices');
+const famRepFact = require('./repository/familyMembers');
 
-app.use(helmet())
-app.use(bodyParser.urlencoded({ extended: true }))
-app.use(bodyParser.json())
-app.use(morgan('combined')) // use 'tiny' or 'combined'
+// ---- SETUP THE DIFFERENT PATHS IN THE REPOSITORY HERE ---- // <-- CONTAINS ALL THE DB LOGIC
+const sampleRepositoryFactory = require('./repository/sampleRepository');
+const usersRepositoryFactory = require('./repository/usersRepository');
 
-const famRepFact = require('./repository/family_member');
-const famRoute = require('./routes/familyMember');
+// ---- SETTING UP THE REPOSITORY AND SERVICE TO BE USED BY ROUTE -- // 
+// const sampleRepository = sampleRepositoryFactory(db); // <-- UNCOMMENT WHEN db section is UNCOMMENTED
+const sampleRepository = sampleRepositoryFactory();     //  <-- DELETE THIS LINE IF THE ABOVE LINE IS UNCOMMENTED
+const sampelService = sampleServiceFactory(sampleRepository);
 
-const famRep = famRepFact(db);
+// const usersRepository = usersRepositoryFactory(db); // <-- UNCOMMENT WHEN db section is UNCOMMENTED
+const usersRepository = usersRepositoryFactory();
+const userService = usersServiceFactory(usersRepository);
 
-app.use("/familyMember", famRoute(famRep))
+const famRepository = famRepFact(db);
 
-app.get('/', (req, res) => res.send('hello world'))
-// app.get('/familyMember', (req, res) => main.getTableData(req, res, db))
-// app.post('/familyMember', (req, res) => main.postTableData(req, res, db))
-// app.put('/familyMember', (req, res) => main.putTableData(req, res, db))
-// app.delete('/familyMember', (req, res) => main.deleteTableData(req, res, db))
+// ---- SERVER ROUTING -------------------------------------- // <-- Routes takes service as params which in turn takes repository as params
+server.use('/sample', sampleRoutes(sampelService));
+server.use('/users', usersRoutes(userService));
 
-// App Server Connection
-app.listen(process.env.PORT || 3000, () => {
-  console.log(`app is running on port ${process.env.PORT || 8000}`)
-})
+server.use('/familyMembers', famRoutes(famRepository));
+
+// ---- HOME PAGE ------------------------------------------- //
+server.get('/', (req, res) => {
+  res.render('index.ejs') // <===== Renders the index.ejs in the views
+});
+server.get('/sample2', (req, res) => {
+  res.send('Inside the sample page'); // <==== outputs the string in the page
+});
+
+// ---- START THE SERVER ------------------------------------ //
+server.listen(port, () => {
+  console.log(`The server is listening on port ${port}`)
+});

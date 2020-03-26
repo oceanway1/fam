@@ -1,26 +1,31 @@
 {
-  "name": "mcCovid19-api",
+  "name": "node-skeleton",
   "version": "1.0.0",
   "description": "",
   "main": "server.js",
   "scripts": {
-    "start": "nodemon server.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "local": "./node_modules/.bin/nodemon -L --ignore public/",
+    "db:reset": "node bin/resetdb.js"
   },
-  "keywords": [],
-  "author": "",
+  "author": "tausvels",
   "license": "ISC",
   "dependencies": {
     "body-parser": "^1.19.0",
+    "chalk": "^2.4.2",
+    "cookie-parser": "^1.4.4",
+    "cookie-session": "^1.4.0",
     "cors": "^2.8.5",
-    "dotenv": "^8.2.0",
+    "dotenv": "^2.0.0",
+    "ejs": "^2.6.2",
     "express": "^4.17.1",
-    "helmet": "^3.21.3",
-    "knex": "^0.20.13",
-    "morgan": "^1.10.0",
-    "pg": "^7.18.2"
+    "morgan": "^1.9.1",
+    "node-sass-middleware": "^0.11.0",
+    "passport": "^0.4.1",
+    "passport-google-oauth20": "^2.0.0",
+    "pg": "^6.4.2"
   },
   "devDependencies": {
-    "nodemon": "^2.0.2"
+    "nodemon": "^1.19.1"
   }
 }
